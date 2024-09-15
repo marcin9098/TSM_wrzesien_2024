@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fetch XML and Display as Table</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>WSDL Data in Table</h1>
+    <table id="xml-table">
+        <thead>
+            <tr>
+                <th>Element</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be populated here -->
+        </tbody>
+    </table>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const url = "https://www.eway.com.au/gateway/rebill/test/manageRebill_test.asmx?WSDL";
+            const xmlTableElement = document.getElementById("xml-table").getElementsByTagName('tbody')[0];
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok " + response.statusText);
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(data, "application/xml");
+                    
+                    // Function to recursively traverse the XML nodes
+                    function traverseXML(node, parentRow) {
+                        Array.from(node.childNodes).forEach(child => {
+                            if (child.nodeType === 1) { // Element node
+                                const row = xmlTableElement.insertRow();
+                                const cell1 = row.insertCell(0);
+                                const cell2 = row.insertCell(1);
+                                cell1.textContent = child.nodeName;
+                                if (child.childNodes.length > 0) {
+                                    cell2.textContent = child.childNodes[0].nodeValue?.trim() || '';
+                                    traverseXML(child, row); // Recursively traverse children
+                                } else {
+                                    cell2.textContent = '';
+                                }
+                            }
+                        });
+                    }
+
+                    traverseXML(xmlDoc.documentElement, null);
+                })
+                .catch(error => {
+                    console.error("There was a problem with the fetch operation:", error);
+                    const row = xmlTableElement.insertRow();
+                    const cell = row.insertCell(0);
+                    cell.colSpan = 2;
+                    cell.textContent = "Failed to fetch XML data.";
+                });
+        });
+    </script>
+</body>
+</html>
